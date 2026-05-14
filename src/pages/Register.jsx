@@ -85,7 +85,7 @@ export default function Register() {
                 </span>
               </p>
             </div>
-            <Button className="w-full" onClick={() => navigate("/login")}>
+            <Button className="w-full" onClick={() => navigate("/login?redirect=/dashboard")}>
               ダッシュボードへログイン
             </Button>
           </CardContent>
@@ -179,23 +179,15 @@ export default function Register() {
                 </p>
               )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={createMutation.isPending}
-              >
+              <Button type="submit" className="w-full" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "登録中..." : "無料トライアルを開始"}
               </Button>
 
               <p className="text-center text-sm text-muted-foreground">
                 すでにアカウントをお持ちですか？{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="text-primary hover:underline"
-                >
+                <Link to="/login" className="text-primary hover:underline">
                   ログイン
-                </button>
+                </Link>
               </p>
             </form>
           </CardContent>

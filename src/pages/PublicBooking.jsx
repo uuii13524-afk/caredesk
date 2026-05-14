@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,19 +32,23 @@ export default function PublicBooking() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
-        const clinics = await base44.entities.Clinic.filter({ slug });
-        if (!clinics || clinics.length === 0) {
+        const clinicRes = await fetch(`${API_BASE}/public/clinics/${slug}`);
+        if (!clinicRes.ok) {
           setError("院が見つかりませんでした。");
           return;
         }
-        setClinic(clinics[0]);
-        // Load appointments for availability
-        const apts = await base44.entities.Appointment.filter({ clinic_id: clinics[0].id });
-        setExistingApts(apts);
+        const clinicData = await clinicRes.json();
+        setClinic(clinicData);
+
+        const aptsRes = await fetch(`${API_BASE}/public/clinics/${slug}/appointments`);
+        const aptsData = aptsRes.ok ? await aptsRes.json() : [];
+        setExistingApts(aptsData);
       } catch (e) {
         setError("院の情報を読み込めませんでした。");
       } finally {
@@ -60,18 +63,25 @@ export default function PublicBooking() {
 
   const handleSubmit = async () => {
     setLoading(true);
-    await base44.entities.Appointment.create({
-      clinic_id: clinic.id,
-      patient_name: form.patient_name,
-      patient_phone: form.patient_phone,
-      date: form.date,
-      time: form.time,
-      treatment_type: form.treatment_type,
-      notes: form.notes,
-      status: "confirmed",
-    });
-    setLoading(false);
-    setSubmitted(true);
+    try {
+      await fetch(`${API_BASE}/public/appointments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clinic_id: clinic.id,
+          patient_name: form.patient_name,
+          patient_phone: form.patient_phone,
+          date: form.date,
+          time: form.time,
+          treatment_type: form.treatment_type,
+          notes: form.notes,
+          status: "confirmed",
+        }),
+      });
+      setSubmitted(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading && !clinic) {
