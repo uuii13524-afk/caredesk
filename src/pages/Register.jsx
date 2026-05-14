@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, CheckCircle, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { addDays, format } from "date-fns";
 
 export default function Register() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     clinicName: "",
@@ -65,7 +66,7 @@ export default function Register() {
               <p><span className="text-muted-foreground">予約URL:</span> <span className="font-medium">/book/{form.slug}</span></p>
               <p><span className="text-muted-foreground">トライアル終了日:</span> <span className="font-medium">{format(addDays(new Date(), 30), "yyyy年MM月dd日")}</span></p>
             </div>
-            <Button className="w-full" onClick={() => base44.auth.redirectToLogin("/dashboard")}>
+            <Button className="w-full" onClick={() => navigate("/login?redirect=/dashboard")}>
               ダッシュボードへログイン
             </Button>
           </CardContent>
@@ -155,13 +156,9 @@ export default function Register() {
 
               <p className="text-center text-sm text-muted-foreground">
                 すでにアカウントをお持ちですか？{" "}
-                <button
-                  type="button"
-                  onClick={() => base44.auth.redirectToLogin("/dashboard")}
-                  className="text-primary hover:underline"
-                >
+                <Link to="/login" className="text-primary hover:underline">
                   ログイン
-                </button>
+                </Link>
               </p>
             </form>
           </CardContent>
