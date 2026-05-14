@@ -13,6 +13,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import Landing from '@/pages/Landing';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
+import Login from '@/pages/Login';
 import PublicBooking from '@/pages/PublicBooking';
 
 // App pages (authenticated)
@@ -49,6 +50,7 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/book/:slug" element={<PublicBooking />} />
 
       {/* Protected app routes */}
