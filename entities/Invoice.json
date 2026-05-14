@@ -1,0 +1,48 @@
+{
+  "name": "Invoice",
+  "type": "object",
+  "properties": {
+    "clinic_id": {
+      "type": "string"
+    },
+    "patient_id": {
+      "type": "string"
+    },
+    "patient_name": {
+      "type": "string"
+    },
+    "appointment_id": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "treatment_type": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "\u672a\u6255\u3044",
+        "\u652f\u6255\u6e08",
+        "\u4fdd\u967a"
+      ],
+      "default": "\u672a\u6255\u3044"
+    },
+    "payment_method": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "clinic_id",
+    "patient_name",
+    "amount"
+  ]
+}

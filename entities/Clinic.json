@@ -1,0 +1,77 @@
+{
+  "name": "Clinic",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Clinic name"
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL-friendly identifier for public booking"
+    },
+    "address": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "business_hours": {
+      "type": "object",
+      "description": "Business hours per day"
+    },
+    "treatment_menu": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "duration_min": {
+            "type": "number"
+          },
+          "price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "subscription_status": {
+      "type": "string",
+      "enum": [
+        "trial",
+        "active",
+        "cancelled",
+        "suspended"
+      ],
+      "default": "trial"
+    },
+    "trial_end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "subscription_start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "monthly_fee": {
+      "type": "number",
+      "default": 3000
+    },
+    "owner_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "slug",
+    "owner_email"
+  ]
+}

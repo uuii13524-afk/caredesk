@@ -1,0 +1,69 @@
+{
+  "name": "Appointment",
+  "type": "object",
+  "properties": {
+    "clinic_id": {
+      "type": "string"
+    },
+    "patient_id": {
+      "type": "string"
+    },
+    "patient_name": {
+      "type": "string"
+    },
+    "patient_phone": {
+      "type": "string"
+    },
+    "staff_id": {
+      "type": "string"
+    },
+    "staff_name": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "time": {
+      "type": "string",
+      "description": "HH:MM format"
+    },
+    "end_time": {
+      "type": "string"
+    },
+    "treatment_type": {
+      "type": "string",
+      "enum": [
+        "\u521d\u8a3a",
+        "\u518d\u8a3a",
+        "\u30de\u30c3\u30b5\u30fc\u30b8",
+        "\u937c\u7078",
+        "\u9aa8\u76e4\u77ef\u6b63"
+      ],
+      "default": "\u518d\u8a3a"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "completed",
+        "cancelled",
+        "no_show"
+      ],
+      "default": "confirmed"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "clinic_id",
+    "patient_name",
+    "date",
+    "time",
+    "treatment_type"
+  ]
+}

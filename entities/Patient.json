@@ -1,0 +1,72 @@
+{
+  "name": "Patient",
+  "type": "object",
+  "properties": {
+    "clinic_id": {
+      "type": "string",
+      "description": "Associated clinic ID"
+    },
+    "name": {
+      "type": "string"
+    },
+    "name_kana": {
+      "type": "string",
+      "description": "Name in katakana (\u30d5\u30ea\u30ac\u30ca)"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "date_of_birth": {
+      "type": "string",
+      "format": "date"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female",
+        "other"
+      ]
+    },
+    "address": {
+      "type": "string"
+    },
+    "insurance_type": {
+      "type": "string",
+      "enum": [
+        "\u56fd\u6c11\u5065\u5eb7\u4fdd\u967a",
+        "\u793e\u4f1a\u4fdd\u967a",
+        "\u81ea\u8cbb"
+      ],
+      "default": "\u81ea\u8cbb"
+    },
+    "medical_history": {
+      "type": "string",
+      "description": "Medical history notes (\u65e2\u5f80\u6b74)"
+    },
+    "intake_notes": {
+      "type": "string",
+      "description": "Initial intake form (\u554f\u8a3a\u7968)"
+    },
+    "last_visit_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "total_visits": {
+      "type": "number",
+      "default": 0
+    },
+    "is_lapsed": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "clinic_id",
+    "name",
+    "phone"
+  ]
+}

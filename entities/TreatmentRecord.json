@@ -1,0 +1,55 @@
+{
+  "name": "TreatmentRecord",
+  "type": "object",
+  "properties": {
+    "clinic_id": {
+      "type": "string"
+    },
+    "patient_id": {
+      "type": "string"
+    },
+    "appointment_id": {
+      "type": "string"
+    },
+    "staff_id": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "symptoms": {
+      "type": "string",
+      "description": "\u75c7\u72b6 - Patient symptoms"
+    },
+    "treatment_details": {
+      "type": "string",
+      "description": "\u65bd\u8853\u5185\u5bb9 - Treatment performed"
+    },
+    "body_areas": {
+      "type": "string",
+      "description": "\u90e8\u4f4d - Body areas treated (e.g. \u8170\u30fb\u80a9\u30fb\u819d)"
+    },
+    "next_appointment_notes": {
+      "type": "string",
+      "description": "\u6b21\u56de\u4e88\u7d04 - Next visit notes"
+    },
+    "insurance_claim_reason": {
+      "type": "string",
+      "description": "\u8ca0\u50b7\u539f\u56e0 - Injury reason for insurance"
+    },
+    "insurance_body_parts": {
+      "type": "string",
+      "description": "\u4fdd\u967a\u90e8\u4f4d - Insurance claim body parts"
+    },
+    "treatment_days": {
+      "type": "number",
+      "description": "\u65bd\u8853\u65e5\u6570 - Treatment days for insurance"
+    }
+  },
+  "required": [
+    "clinic_id",
+    "patient_id",
+    "date"
+  ]
+}
