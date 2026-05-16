@@ -1,0 +1,47 @@
+{
+  "name": "Course",
+  "type": "object",
+  "properties": {
+    "clinic_id": {
+      "type": "string"
+    },
+    "patient_id": {
+      "type": "string"
+    },
+    "patient_name": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Course/package name"
+    },
+    "total_sessions": {
+      "type": "number"
+    },
+    "remaining_sessions": {
+      "type": "number"
+    },
+    "total_price": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "expired"
+      ],
+      "default": "active"
+    },
+    "purchase_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "clinic_id",
+    "patient_id",
+    "name",
+    "total_sessions"
+  ]
+}

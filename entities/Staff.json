@@ -1,0 +1,46 @@
+{
+  "name": "Staff",
+  "type": "object",
+  "properties": {
+    "clinic_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "therapist",
+        "receptionist",
+        "admin"
+      ],
+      "default": "therapist"
+    },
+    "specialization": {
+      "type": "string",
+      "description": "e.g. \u937c\u7078\u5e2b, \u67d4\u9053\u6574\u5fa9\u5e2b, \u6574\u4f53\u5e2b"
+    },
+    "weekly_schedule": {
+      "type": "object",
+      "description": "Available hours per day of week"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "avatar_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "clinic_id",
+    "name"
+  ]
+}
