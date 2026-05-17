@@ -5,6 +5,9 @@ CareDesk FastAPI Backend
 
 import os
 import uuid
+import time
+import threading
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Optional, Any
 
@@ -41,8 +44,65 @@ SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-this-secret-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", 60 * 24 * 7))  # 1 week
 
+if SECRET_KEY == "change-this-secret-in-production":
+    import warnings
+    warnings.warn("WARNING: JWT_SECRET_KEY is using default value. Change it in production!")
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+# ---------------------------------------------------------------------------
+# Security: login failure tracking and rate limiting
+# ---------------------------------------------------------------------------
+
+LOCKOUT_MAX_FAILURES = 5
+LOCKOUT_DURATION_SECONDS = 600  # 10 minutes
+RATE_LIMIT_MAX_REQUESTS = 10
+RATE_LIMIT_WINDOW_SECONDS = 60  # 1 minute
+
+_lockout_lock = threading.Lock()
+_login_failures: dict[str, list[float]] = defaultdict(list)  # email -> [timestamp, ...]
+_rate_limit_lock = threading.Lock()
+_rate_limit_requests: dict[str, list[float]] = defaultdict(list)  # ip -> [timestamp, ...]
+
+
+def _check_login_lockout(email: str) -> None:
+    now = time.time()
+    with _lockout_lock:
+        timestamps = _login_failures[email]
+        recent = [t for t in timestamps if now - t < LOCKOUT_DURATION_SECONDS]
+        _login_failures[email] = recent
+        if len(recent) >= LOCKOUT_MAX_FAILURES:
+            wait = int(LOCKOUT_DURATION_SECONDS - (now - recent[0]))
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"ログイン試行回数が上限を超えました。{wait}秒後に再試行してください。",
+            )
+
+
+def _record_login_failure(email: str) -> None:
+    with _lockout_lock:
+        _login_failures[email].append(time.time())
+
+
+def _clear_login_failures(email: str) -> None:
+    with _lockout_lock:
+        _login_failures[email] = []
+
+
+def _check_rate_limit(client_ip: str) -> None:
+    now = time.time()
+    with _rate_limit_lock:
+        timestamps = _rate_limit_requests[client_ip]
+        recent = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW_SECONDS]
+        _rate_limit_requests[client_ip] = recent
+        if len(recent) >= RATE_LIMIT_MAX_REQUESTS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="リクエストが多すぎます。しばらくお待ちください。",
+            )
+        _rate_limit_requests[client_ip].append(now)
+
 
 # ---------------------------------------------------------------------------
 # Oracle DB
@@ -149,7 +209,11 @@ class RegisterUserRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @app.post("/api/auth/login", response_model=TokenResponse)
-def login(req: LoginRequest, db=Depends(get_db)):
+def login(req: LoginRequest, request: Request, db=Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(client_ip)
+    _check_login_lockout(req.email)
+
     cursor = db.cursor()
     cursor.execute(
         "SELECT id, password_hash, clinic_id, role, is_super_admin "
@@ -158,10 +222,12 @@ def login(req: LoginRequest, db=Depends(get_db)):
     )
     row = cursor.fetchone()
     if not row or not pwd_context.verify(req.password, row[1]):
+        _record_login_failure(req.email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="メールアドレスまたはパスワードが正しくありません",
         )
+    _clear_login_failures(req.email)
     user_id, _, clinic_id, role, is_super_admin = row
     token = create_access_token({
         "sub": str(user_id),
@@ -189,6 +255,12 @@ def get_me(current_user=Depends(get_current_user), db=Depends(get_db)):
 @app.post("/api/auth/register", status_code=201)
 def register(req: RegisterUserRequest, db=Depends(get_db)):
     """新規院登録 + オーナーアカウント作成"""
+    if len(req.password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="パスワードは8文字以上で設定してください",
+        )
+
     cursor = db.cursor()
 
     # Email uniqueness check
