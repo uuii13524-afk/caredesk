@@ -14,6 +14,9 @@ import Landing from '@/pages/Landing';
 import Register from '@/pages/Register';
 import Login from '@/pages/Login';
 import PublicBooking from '@/pages/PublicBooking';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import LegalNotice from '@/pages/LegalNotice';
+import Terms from '@/pages/Terms';
 
 // App pages (authenticated)
 import Dashboard from '@/pages/Dashboard';
@@ -50,6 +53,9 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/book/:slug" element={<PublicBooking />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/legal" element={<LegalNotice />} />
+      <Route path="/terms" element={<Terms />} />
 
       {/* Protected app routes */}
       <Route element={<ProtectedRoute unauthenticatedElement={<Landing />} />}>

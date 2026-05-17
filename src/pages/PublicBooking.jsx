@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +41,7 @@ export default function PublicBooking() {
   const [step, setStep] = useState(1);
   const [existingApts, setExistingApts] = useState([]);
   const [submitted, setSubmitted] = useState(false);
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
 
   const [form, setForm] = useState({
     treatment_type: "",
@@ -375,12 +376,26 @@ export default function PublicBooking() {
               />
             </div>
 
+            <div className="flex items-start gap-2 py-1">
+              <input
+                id="agree-privacy"
+                type="checkbox"
+                checked={agreedToPrivacy}
+                onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-primary cursor-pointer"
+              />
+              <label htmlFor="agree-privacy" className="text-sm text-muted-foreground cursor-pointer leading-snug">
+                <Link to="/privacy" className="text-primary hover:underline" target="_blank">プライバシーポリシー</Link>
+                に同意する（必須）
+              </label>
+            </div>
+
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep(2)} className="flex-1">戻る</Button>
               <Button
                 onClick={handleSubmit}
                 className="flex-1"
-                disabled={!form.patient_name || !form.patient_phone || loading}
+                disabled={!form.patient_name || !form.patient_phone || loading || !agreedToPrivacy}
               >
                 {loading ? "予約中..." : "予約を確定する"}
               </Button>

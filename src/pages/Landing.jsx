@@ -8,6 +8,7 @@ import {
   CheckCircle, Activity, Clock, CreditCard 
 } from "lucide-react";
 import { motion } from "framer-motion";
+import Footer from "@/components/layout/Footer";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -31,7 +32,7 @@ const testimonials = [
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* ヘッダー */}
       <header className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -228,18 +229,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* フッター */}
-      <footer className="border-t py-10 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-              <Activity className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold">CareDesk</span>
-          </div>
-          <p className="text-sm text-muted-foreground">© 2026 CareDesk. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

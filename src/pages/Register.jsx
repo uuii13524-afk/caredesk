@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, CheckCircle, ArrowLeft } from "lucide-react";
 import { addDays, format } from "date-fns";
+import Footer from "@/components/layout/Footer";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function Register() {
     address: "",
   });
   const [done, setDone] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -95,111 +97,134 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Activity className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">CareDesk</span>
-          </Link>
-          <h1 className="text-2xl font-bold">院を登録する</h1>
-          <p className="text-muted-foreground text-sm mt-2">30日間無料トライアル。クレジットカード不要。</p>
-        </div>
-
-        <Card>
-          <CardContent className="p-6">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                createMutation.mutate(form);
-              }}
-              className="space-y-4"
-            >
-              <div className="space-y-1">
-                <Label>院名 *</Label>
-                <Input
-                  value={form.clinicName}
-                  onChange={(e) => handleSlug(e.target.value)}
-                  placeholder="田中整骨院"
-                  required
-                />
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-flex items-center gap-2 mb-6">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <Activity className="w-5 h-5 text-primary-foreground" />
               </div>
+              <span className="text-xl font-bold">CareDesk</span>
+            </Link>
+            <h1 className="text-2xl font-bold">院を登録する</h1>
+            <p className="text-muted-foreground text-sm mt-2">30日間無料トライアル。クレジットカード不要。</p>
+          </div>
 
-              <div className="space-y-1">
-                <Label>URLスラッグ *</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-sm">/book/</span>
+          <Card>
+            <CardContent className="p-6">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  createMutation.mutate(form);
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-1">
+                  <Label>院名 *</Label>
                   <Input
-                    value={form.slug}
-                    onChange={(e) =>
-                      set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))
-                    }
-                    placeholder="tanaka-clinic"
+                    value={form.clinicName}
+                    onChange={(e) => handleSlug(e.target.value)}
+                    placeholder="田中整骨院"
                     required
-                    className="flex-1"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">オンライン予約ページのURLに使用されます</p>
-              </div>
 
-              <div className="space-y-1">
-                <Label>オーナーのメールアドレス *</Label>
-                <Input
-                  type="email"
-                  value={form.ownerEmail}
-                  onChange={(e) => set("ownerEmail", e.target.value)}
-                  placeholder="owner@clinic.com"
-                  required
-                />
-              </div>
+                <div className="space-y-1">
+                  <Label>URLスラッグ *</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground text-sm">/book/</span>
+                    <Input
+                      value={form.slug}
+                      onChange={(e) =>
+                        set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))
+                      }
+                      placeholder="tanaka-clinic"
+                      required
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">オンライン予約ページのURLに使用されます</p>
+                </div>
 
-              <div className="space-y-1">
-                <Label>電話番号</Label>
-                <Input
-                  value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
-                  placeholder="03-0000-0000"
-                />
-              </div>
+                <div className="space-y-1">
+                  <Label>オーナーのメールアドレス *</Label>
+                  <Input
+                    type="email"
+                    value={form.ownerEmail}
+                    onChange={(e) => set("ownerEmail", e.target.value)}
+                    placeholder="owner@clinic.com"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <Label>住所</Label>
-                <Input
-                  value={form.address}
-                  onChange={(e) => set("address", e.target.value)}
-                  placeholder="東京都〇〇区..."
-                />
-              </div>
+                <div className="space-y-1">
+                  <Label>電話番号</Label>
+                  <Input
+                    value={form.phone}
+                    onChange={(e) => set("phone", e.target.value)}
+                    placeholder="03-0000-0000"
+                  />
+                </div>
 
-              {createMutation.isError && (
-                <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
-                  {createMutation.error?.message || "登録に失敗しました"}
+                <div className="space-y-1">
+                  <Label>住所</Label>
+                  <Input
+                    value={form.address}
+                    onChange={(e) => set("address", e.target.value)}
+                    placeholder="東京都〇〇区..."
+                  />
+                </div>
+
+                {createMutation.isError && (
+                  <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
+                    {createMutation.error?.message || "登録に失敗しました"}
+                  </p>
+                )}
+
+                <div className="flex items-start gap-2 py-1">
+                  <input
+                    id="agree-terms"
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-primary cursor-pointer"
+                  />
+                  <label htmlFor="agree-terms" className="text-sm text-muted-foreground cursor-pointer leading-snug">
+                    <Link to="/terms" className="text-primary hover:underline" target="_blank">利用規約</Link>
+                    {" "}および{" "}
+                    <Link to="/privacy" className="text-primary hover:underline" target="_blank">プライバシーポリシー</Link>
+                    に同意する（必須）
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={createMutation.isPending || !agreedToTerms}
+                >
+                  {createMutation.isPending ? "登録中..." : "無料トライアルを開始"}
+                </Button>
+
+                <p className="text-center text-sm text-muted-foreground">
+                  すでにアカウントをお持ちですか？{" "}
+                  <Link to="/login" className="text-primary hover:underline">
+                    ログイン
+                  </Link>
                 </p>
-              )}
+              </form>
+            </CardContent>
+          </Card>
 
-              <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "登録中..." : "無料トライアルを開始"}
-              </Button>
-
-              <p className="text-center text-sm text-muted-foreground">
-                すでにアカウントをお持ちですか？{" "}
-                <Link to="/login" className="text-primary hover:underline">
-                  ログイン
-                </Link>
-              </p>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Link
-          to="/"
-          className="flex items-center justify-center gap-1 mt-6 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4" /> トップに戻る
-        </Link>
+          <Link
+            to="/"
+            className="flex items-center justify-center gap-1 mt-6 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" /> トップに戻る
+          </Link>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }
