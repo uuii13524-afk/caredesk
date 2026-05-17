@@ -1,38 +1,42 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, Calendar, Users, FileText, CreditCard, 
+import {
+  LayoutDashboard, Calendar, Users, FileText, CreditCard,
   UserCog, Star, Package, Settings, Activity, LogOut, ChevronLeft, Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
 
 const navItems = [
   { path: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
   { path: "/appointments", label: "予約管理", icon: Calendar },
   { path: "/patients", label: "患者管理", icon: Users },
   { path: "/treatment-records", label: "施術記録", icon: FileText },
-  { path: "/courses", label: "コース管理", icon: Package },
-  { path: "/invoices", label: "請求管理", icon: CreditCard },
+  // { path: "/courses", label: "コース管理", icon: Package },
+  // { path: "/invoices", label: "請求管理", icon: CreditCard },
   { path: "/staff", label: "スタッフ管理", icon: UserCog },
-  { path: "/reviews", label: "レビュー", icon: Star },
+  // { path: "/reviews", label: "レビュー", icon: Star },
   { path: "/settings", label: "設定", icon: Settings },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const location = useLocation();
 
+  const handleLogout = () => {
+    localStorage.removeItem("jwt_token");
+    window.location.href = "/";
+  };
+
   return (
     <>
       {/* Mobile overlay */}
       {!collapsed && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setCollapsed(true)}
         />
       )}
-      
+
       <aside className={cn(
         "fixed top-0 left-0 h-full bg-sidebar text-sidebar-foreground z-50 transition-all duration-300 flex flex-col",
         collapsed ? "-translate-x-full lg:translate-x-0 lg:w-16" : "translate-x-0 w-64"
@@ -68,8 +72,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                 onClick={() => window.innerWidth < 1024 && setCollapsed(true)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive 
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                  isActive
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 )}
               >
@@ -83,7 +87,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         {/* Logout */}
         <div className="p-2 border-t border-sidebar-border">
           <button
-            onClick={() => base44.auth.logout("/")}
+            onClick={handleLogout}
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground w-full transition-colors"
           >
             <LogOut className="w-5 h-5 shrink-0" />

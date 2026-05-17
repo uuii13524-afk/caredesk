@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +7,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, FileText, User } from "lucide-react";
+import { Plus, Search, FileText } from "lucide-react";
+
+const getToken = () => localStorage.getItem("jwt_token");
+async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, ...options.headers },
+  });
+  if (!res.ok) throw new Error("APIエラー");
+  return res.json();
+}
 
 export default function TreatmentRecords() {
   const [search, setSearch] = useState("");
@@ -18,32 +27,32 @@ export default function TreatmentRecords() {
 
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["treatment-records-all"],
-    queryFn: () => base44.entities.TreatmentRecord.list("-date", 200),
+    queryFn: () => apiFetch("/api/treatment-records?sort=-record_date&limit=200"),
   });
 
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
-    queryFn: () => base44.entities.Patient.list(),
+    queryFn: () => apiFetch("/api/patients"),
   });
 
   const { data: staff = [] } = useQuery({
     queryKey: ["staff"],
-    queryFn: () => base44.entities.Staff.list(),
+    queryFn: () => apiFetch("/api/staff"),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.TreatmentRecord.create(data),
+    mutationFn: (data) => apiFetch("/api/treatment-records", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries(["treatment-records-all"]); setShowForm(false); setEditing(null); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.TreatmentRecord.update(id, data),
+    mutationFn: ({ id, data }) => apiFetch(`/api/treatment-records/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries(["treatment-records-all"]); setShowForm(false); setEditing(null); },
   });
 
   const filtered = records.filter(r => {
     const patient = patients.find(p => p.id === r.patient_id);
-    return patient?.name?.toLowerCase().includes(search.toLowerCase()) || r.date?.includes(search);
+    return patient?.name?.toLowerCase().includes(search.toLowerCase()) || r.record_date?.includes(search);
   });
 
   return (
@@ -85,7 +94,7 @@ export default function TreatmentRecords() {
                       <span className="font-medium text-sm">{patient?.name || "不明"}</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold">{r.date}</p>
+                      <p className="text-sm font-semibold">{r.record_date}</p>
                       {staffMember && <p className="text-xs text-muted-foreground">{staffMember.name}</p>}
                     </div>
                   </div>
@@ -132,7 +141,7 @@ function TreatmentForm({ initial, patients, staff, onSubmit, loading, onCancel }
   const [form, setForm] = useState({
     patient_id: initial?.patient_id || "",
     staff_id: initial?.staff_id || "",
-    date: initial?.date || new Date().toISOString().slice(0, 10),
+    record_date: initial?.record_date || new Date().toISOString().slice(0, 10),
     symptoms: initial?.symptoms || "",
     treatment_details: initial?.treatment_details || "",
     body_areas: initial?.body_areas || "",
@@ -169,7 +178,7 @@ function TreatmentForm({ initial, patients, staff, onSubmit, loading, onCancel }
 
       <div className="space-y-1">
         <Label>施術日 *</Label>
-        <Input type="date" value={form.date} onChange={e => set("date", e.target.value)} required />
+        <Input type="date" value={form.record_date} onChange={e => set("record_date", e.target.value)} required />
       </div>
 
       <div className="space-y-1">

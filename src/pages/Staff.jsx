@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Plus, User, Mail, Phone } from "lucide-react";
 
+const getToken = () => localStorage.getItem("jwt_token");
+async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, ...options.headers },
+  });
+  if (!res.ok) throw new Error("APIエラー");
+  return res.json();
+}
+
 export default function Staff() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -18,16 +27,16 @@ export default function Staff() {
 
   const { data: staff = [], isLoading } = useQuery({
     queryKey: ["staff"],
-    queryFn: () => base44.entities.Staff.list(),
+    queryFn: () => apiFetch("/api/staff"),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Staff.create(data),
+    mutationFn: (data) => apiFetch("/api/staff", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries(["staff"]); setShowForm(false); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Staff.update(id, data),
+    mutationFn: ({ id, data }) => apiFetch(`/api/staff/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries(["staff"]); setShowForm(false); setEditing(null); },
   });
 

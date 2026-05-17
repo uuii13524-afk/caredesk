@@ -1,13 +1,22 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addDays, subDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO } from "date-fns";
+import { format, addDays, subDays, startOfWeek, addWeeks, subWeeks, isSameDay } from "date-fns";
 import AppointmentForm from "@/components/appointments/AppointmentForm";
+
+const getToken = () => localStorage.getItem("jwt_token");
+async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, ...options.headers },
+  });
+  if (!res.ok) throw new Error("APIエラー");
+  return res.json();
+}
 
 const STATUS_COLORS = {
   confirmed: "bg-primary/15 text-primary border-primary/30",
@@ -29,28 +38,35 @@ export default function Appointments() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  const { data: clinics = [] } = useQuery({
+    queryKey: ["clinics"],
+    queryFn: () => apiFetch("/api/clinics"),
+  });
+
   const { data: appointments = [] } = useQuery({
     queryKey: ["appointments"],
-    queryFn: () => base44.entities.Appointment.list("-date", 500),
+    queryFn: () => apiFetch("/api/appointments?sort=-appointment_date&limit=500"),
   });
 
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
-    queryFn: () => base44.entities.Patient.list(),
+    queryFn: () => apiFetch("/api/patients"),
   });
 
   const { data: staff = [] } = useQuery({
     queryKey: ["staff"],
-    queryFn: () => base44.entities.Staff.list(),
+    queryFn: () => apiFetch("/api/staff"),
   });
 
+  const clinic = clinics[0] || null;
+
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Appointment.create(data),
+    mutationFn: (data) => apiFetch("/api/appointments", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries(["appointments"]); setShowForm(false); setEditing(null); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Appointment.update(id, data),
+    mutationFn: ({ id, data }) => apiFetch(`/api/appointments/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries(["appointments"]); setShowForm(false); setEditing(null); },
   });
 
@@ -60,18 +76,21 @@ export default function Appointments() {
   };
 
   const dayApts = viewMode === "day"
-    ? appointments.filter(a => a.date === format(currentDate, "yyyy-MM-dd"))
+    ? appointments.filter(a => a.appointment_date === format(currentDate, "yyyy-MM-dd"))
     : [];
 
   const weekApts = viewMode === "week"
     ? weekDays.map(d => ({
         date: d,
-        apts: appointments.filter(a => a.date === format(d, "yyyy-MM-dd"))
+        apts: appointments.filter(a => a.appointment_date === format(d, "yyyy-MM-dd"))
       }))
     : [];
 
   const openNew = (date, time) => {
-    setSelectedSlot({ date: format(date || currentDate, "yyyy-MM-dd"), time: time || "09:00" });
+    setSelectedSlot({
+      appointment_date: format(date || currentDate, "yyyy-MM-dd"),
+      appointment_time: time || "09:00",
+    });
     setEditing(null);
     setShowForm(true);
   };
@@ -135,8 +154,8 @@ export default function Appointments() {
                 <div className="p-1 text-xs text-muted-foreground text-right pr-2 border-r pt-1">{hour}:00</div>
                 {weekDays.map((d, di) => {
                   const slotApts = appointments.filter(a =>
-                    a.date === format(d, "yyyy-MM-dd") &&
-                    a.time && parseInt(a.time.split(":")[0]) === hour
+                    a.appointment_date === format(d, "yyyy-MM-dd") &&
+                    a.appointment_time && parseInt(a.appointment_time.split(":")[0]) === hour
                   );
                   return (
                     <div
@@ -150,7 +169,7 @@ export default function Appointments() {
                           className={`text-xs rounded px-1 py-0.5 mb-0.5 border cursor-pointer truncate ${STATUS_COLORS[a.status] || ""}`}
                           onClick={e => { e.stopPropagation(); setEditing(a); setShowForm(true); }}
                         >
-                          <span className="font-medium">{a.time}</span> {a.patient_name}
+                          <span className="font-medium">{a.appointment_time}</span> {a.patient_name}
                         </div>
                       ))}
                     </div>
@@ -166,7 +185,7 @@ export default function Appointments() {
       {viewMode === "day" && (
         <div className="space-y-2 rounded-lg border bg-card p-4">
           {HOURS.map(hour => {
-            const slotApts = dayApts.filter(a => a.time && parseInt(a.time.split(":")[0]) === hour);
+            const slotApts = dayApts.filter(a => a.appointment_time && parseInt(a.appointment_time.split(":")[0]) === hour);
             return (
               <div
                 key={hour}
@@ -206,8 +225,8 @@ export default function Appointments() {
               onClick={() => { setEditing(a); setShowForm(true); }}
             >
               <div className="text-center min-w-[70px]">
-                <p className="text-sm font-bold">{a.date}</p>
-                <p className="text-xs text-muted-foreground">{a.time}</p>
+                <p className="text-sm font-bold">{a.appointment_date}</p>
+                <p className="text-xs text-muted-foreground">{a.appointment_time}</p>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">{a.patient_name}</p>
@@ -228,6 +247,7 @@ export default function Appointments() {
             initial={editing || selectedSlot}
             patients={patients}
             staff={staff}
+            clinic={clinic}
             onSubmit={handleSubmit}
             loading={createMutation.isPending || updateMutation.isPending}
             onCancel={() => { setShowForm(false); setEditing(null); setSelectedSlot(null); }}

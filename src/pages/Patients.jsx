@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +8,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Search, User, Phone, ChevronRight, AlertCircle } from "lucide-react";
 import PatientForm from "@/components/patients/PatientForm";
 import PatientDetail from "@/components/patients/PatientDetail";
-import { format, differenceInYears, parseISO } from "date-fns";
+import { differenceInYears, parseISO } from "date-fns";
+
+const getToken = () => localStorage.getItem("jwt_token");
+async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, ...options.headers },
+  });
+  if (!res.ok) throw new Error("APIエラー");
+  return res.json();
+}
 
 export default function Patients() {
   const [search, setSearch] = useState("");
@@ -20,16 +29,16 @@ export default function Patients() {
 
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ["patients"],
-    queryFn: () => base44.entities.Patient.list("-created_date"),
+    queryFn: () => apiFetch("/api/patients?sort=-created_date"),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Patient.create(data),
+    mutationFn: (data) => apiFetch("/api/patients", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries(["patients"]); setShowForm(false); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Patient.update(id, data),
+    mutationFn: ({ id, data }) => apiFetch(`/api/patients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries(["patients"]); setEditingPatient(null); setShowForm(false); },
   });
 

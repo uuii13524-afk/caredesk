@@ -61,16 +61,25 @@ def get_db():
         conn.close()
 
 
+def _convert_val(val):
+    """Convert Oracle LOB objects and other special types to Python primitives."""
+    if val is None:
+        return val
+    if hasattr(val, "read"):
+        return val.read()
+    return val
+
+
 def row_to_dict(cursor, row) -> dict:
     cols = [col[0].lower() for col in cursor.description]
-    return dict(zip(cols, row))
+    return {col: _convert_val(val) for col, val in zip(cols, row)}
 
 
 def rows_to_list(cursor, rows) -> list[dict]:
     if not rows:
         return []
     cols = [col[0].lower() for col in cursor.description]
-    return [dict(zip(cols, row)) for row in rows]
+    return [{col: _convert_val(val) for col, val in zip(cols, row)} for row in rows]
 
 
 def new_id() -> str:
@@ -245,21 +254,21 @@ TENANT_ENTITIES = {
 ALLOWED_SORT_COLS: dict[str, set[str]] = {
     "clinics":           {"created_date", "name"},
     "patients":          {"created_date", "name", "last_visit_date"},
-    "appointments":      {"date", "created_date"},
+    "appointments":      {"appointment_date", "created_date"},
     "staff":             {"created_date", "name"},
-    "treatment-records": {"date", "created_date"},
+    "treatment-records": {"record_date", "created_date"},
     "courses":           {"created_date", "purchase_date"},
-    "invoices":          {"date", "created_date"},
-    "reviews":           {"date", "created_date"},
+    "invoices":          {"invoice_date", "created_date"},
+    "reviews":           {"review_date", "created_date"},
 }
 
 # Allowed filter params per entity (whitelist)
 ALLOWED_FILTERS: dict[str, set[str]] = {
     "clinics":           {"slug", "id", "subscription_status"},
     "patients":          {"clinic_id", "is_lapsed"},
-    "appointments":      {"clinic_id", "patient_id", "date", "status"},
+    "appointments":      {"clinic_id", "patient_id", "appointment_date", "status"},
     "staff":             {"clinic_id", "is_active", "role"},
-    "treatment-records": {"clinic_id", "patient_id", "date"},
+    "treatment-records": {"clinic_id", "patient_id", "record_date"},
     "courses":           {"clinic_id", "patient_id", "status"},
     "invoices":          {"clinic_id", "patient_id", "payment_status"},
     "reviews":           {"clinic_id", "staff_id"},
@@ -510,9 +519,9 @@ def get_public_appointments(slug: str, db=Depends(get_db)):
     clinic_id = row[0]
 
     cursor.execute(
-        "SELECT date, time, status FROM caredesk_appointments "
+        "SELECT appointment_date, appointment_time, status FROM caredesk_appointments "
         "WHERE clinic_id = :1 AND status != 'cancelled' "
-        "ORDER BY date, time",
+        "ORDER BY appointment_date, appointment_time",
         [clinic_id],
     )
     rows = cursor.fetchall()
@@ -522,7 +531,7 @@ def get_public_appointments(slug: str, db=Depends(get_db)):
 @app.post("/api/public/appointments", status_code=201)
 def create_public_appointment(payload: dict, db=Depends(get_db)):
     """公開予約フォームから予約を作成（認証不要）"""
-    required = ("clinic_id", "patient_name", "date", "time", "treatment_type")
+    required = ("clinic_id", "patient_name", "appointment_date", "appointment_time", "treatment_type")
     for field in required:
         if field not in payload:
             raise HTTPException(status_code=422, detail=f"{field} は必須です")

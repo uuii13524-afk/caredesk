@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,33 +11,81 @@ const TIMES = Array.from({ length: 26 }, (_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`;
 });
 
-export default function AppointmentForm({ initial, patients, staff, onSubmit, loading, onCancel, isEditing, onStatusChange }) {
+const DEFAULT_TREATMENTS = ["初診", "再診", "マッサージ", "鍼灸", "骨盤矯正"];
+
+function parseTreatmentMenu(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    if (typeof parsed[0] === "string") {
+      return parsed.map(name => ({ name, price: 0 }));
+    }
+    return parsed.map(item => ({ name: item.name, price: item.price || 0 }));
+  } catch {
+    return null;
+  }
+}
+
+export default function AppointmentForm({ initial, patients, staff, clinic, onSubmit, loading, onCancel, isEditing, onStatusChange }) {
+  const treatmentMenu = useMemo(() => parseTreatmentMenu(clinic?.treatment_menu), [clinic?.treatment_menu]);
+
+  const treatments = treatmentMenu ? treatmentMenu.map(t => t.name) : DEFAULT_TREATMENTS;
+
+  const getPriceForTreatment = (type) => {
+    if (!treatmentMenu) return null;
+    const item = treatmentMenu.find(t => t.name === type);
+    return item ? item.price : null;
+  };
+
+  const initialTreatment = initial?.treatment_type || "再診";
+  const initialPrice = (() => {
+    if (initial?.price && Number(initial.price) > 0) return initial.price;
+    const menuPrice = getPriceForTreatment(initialTreatment);
+    return menuPrice !== null ? menuPrice : (initial?.price || "");
+  })();
+
   const [form, setForm] = useState({
     patient_id: initial?.patient_id || "",
     patient_name: initial?.patient_name || "",
     patient_phone: initial?.patient_phone || "",
     staff_id: initial?.staff_id || "",
     staff_name: initial?.staff_name || "",
-    date: initial?.date || "",
-    time: initial?.time || "09:00",
-    treatment_type: initial?.treatment_type || "再診",
+    appointment_date: initial?.appointment_date || "",
+    appointment_time: initial?.appointment_time || "09:00",
+    treatment_type: initialTreatment,
     status: initial?.status || "confirmed",
     notes: initial?.notes || "",
-    price: initial?.price || "",
+    price: initialPrice,
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handlePatientChange = (id) => {
     const p = patients.find(p => p.id === id);
-    if (p) set("patient_id", id), set("patient_name", p.name), set("patient_phone", p.phone || "");
-    else set("patient_id", id);
+    if (p) {
+      setForm(f => ({ ...f, patient_id: id, patient_name: p.name, patient_phone: p.phone || "" }));
+    } else {
+      set("patient_id", id);
+    }
   };
 
   const handleStaffChange = (id) => {
     const s = staff.find(s => s.id === id);
-    if (s) set("staff_id", id), set("staff_name", s.name);
-    else set("staff_id", id);
+    if (s) {
+      setForm(f => ({ ...f, staff_id: id, staff_name: s.name }));
+    } else {
+      set("staff_id", id);
+    }
+  };
+
+  const handleTreatmentChange = (type) => {
+    const menuPrice = getPriceForTreatment(type);
+    setForm(f => ({
+      ...f,
+      treatment_type: type,
+      price: menuPrice !== null ? menuPrice : f.price,
+    }));
   };
 
   const handleSubmit = (e) => {
@@ -72,11 +120,11 @@ export default function AppointmentForm({ initial, patients, staff, onSubmit, lo
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label>日付 *</Label>
-          <Input type="date" value={form.date} onChange={e => set("date", e.target.value)} required />
+          <Input type="date" value={form.appointment_date} onChange={e => set("appointment_date", e.target.value)} required />
         </div>
         <div className="space-y-1">
           <Label>時間 *</Label>
-          <Select value={form.time} onValueChange={v => set("time", v)}>
+          <Select value={form.appointment_time} onValueChange={v => set("appointment_time", v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {TIMES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -88,14 +136,12 @@ export default function AppointmentForm({ initial, patients, staff, onSubmit, lo
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label>施術種別</Label>
-          <Select value={form.treatment_type} onValueChange={v => set("treatment_type", v)}>
+          <Select value={form.treatment_type} onValueChange={handleTreatmentChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="初診">初診</SelectItem>
-              <SelectItem value="再診">再診</SelectItem>
-              <SelectItem value="マッサージ">マッサージ</SelectItem>
-              <SelectItem value="鍼灸">鍼灸</SelectItem>
-              <SelectItem value="骨盤矯正">骨盤矯正</SelectItem>
+              {treatments.map(t => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

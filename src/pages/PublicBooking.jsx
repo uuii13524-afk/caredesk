@@ -23,8 +23,8 @@ export default function PublicBooking() {
 
   const [form, setForm] = useState({
     treatment_type: "再診",
-    date: "",
-    time: "",
+    appointment_date: "",
+    appointment_time: "",
     patient_name: "",
     patient_phone: "",
     notes: "",
@@ -59,7 +59,11 @@ export default function PublicBooking() {
   }, [slug]);
 
   const isTimeBooked = (date, time) =>
-    existingApts.some(a => a.date === date && a.time === time && a.status !== "cancelled");
+    existingApts.some(a =>
+      a.appointment_date === date &&
+      a.appointment_time === time &&
+      a.status !== "cancelled"
+    );
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -71,8 +75,8 @@ export default function PublicBooking() {
           clinic_id: clinic.id,
           patient_name: form.patient_name,
           patient_phone: form.patient_phone,
-          date: form.date,
-          time: form.time,
+          appointment_date: form.appointment_date,
+          appointment_time: form.appointment_time,
           treatment_type: form.treatment_type,
           notes: form.notes,
           status: "confirmed",
@@ -125,11 +129,11 @@ export default function PublicBooking() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">日付</span>
-                <span className="font-medium">{form.date}</span>
+                <span className="font-medium">{form.appointment_date}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">時間</span>
-                <span className="font-medium">{form.time}</span>
+                <span className="font-medium">{form.appointment_time}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">施術内容</span>
@@ -200,11 +204,11 @@ export default function PublicBooking() {
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {DAYS_AHEAD.map(day => {
                   const dateStr = format(day, "yyyy-MM-dd");
-                  const isSelected = form.date === dateStr;
+                  const isSelected = form.appointment_date === dateStr;
                   return (
                     <button
                       key={dateStr}
-                      onClick={() => { set("date", dateStr); set("time", ""); }}
+                      onClick={() => { set("appointment_date", dateStr); set("appointment_time", ""); }}
                       className={`p-2 rounded-lg border text-center text-xs transition-colors ${isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"}`}
                     >
                       <p className="font-medium">{format(day, "EEE")}</p>
@@ -216,18 +220,18 @@ export default function PublicBooking() {
               </div>
             </div>
 
-            {form.date && (
+            {form.appointment_date && (
               <div>
                 <Label className="mb-2 block">時間を選択</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {TIMES.map(t => {
-                    const booked = isTimeBooked(form.date, t);
-                    const isSelected = form.time === t;
+                    const booked = isTimeBooked(form.appointment_date, t);
+                    const isSelected = form.appointment_time === t;
                     return (
                       <button
                         key={t}
                         disabled={booked}
-                        onClick={() => set("time", t)}
+                        onClick={() => set("appointment_time", t)}
                         className={`p-2 rounded-lg border text-sm font-medium transition-colors ${booked ? "opacity-40 cursor-not-allowed bg-muted" : isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"}`}
                       >
                         {booked ? <s>{t}</s> : t}
@@ -243,7 +247,7 @@ export default function PublicBooking() {
               <Button
                 onClick={() => setStep(3)}
                 className="flex-1"
-                disabled={!form.date || !form.time}
+                disabled={!form.appointment_date || !form.appointment_time}
               >
                 次へ
               </Button>
@@ -263,11 +267,11 @@ export default function PublicBooking() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">日付</span>
-                <span className="font-medium">{form.date}</span>
+                <span className="font-medium">{form.appointment_date}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">時間</span>
-                <span className="font-medium">{form.time}</span>
+                <span className="font-medium">{form.appointment_time}</span>
               </div>
             </div>
 
