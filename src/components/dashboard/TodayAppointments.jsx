@@ -11,7 +11,7 @@ const statusColors = {
 };
 
 export default function TodayAppointments({ appointments }) {
-  const sorted = [...appointments].sort((a, b) => a.time.localeCompare(b.time));
+  const sorted = [...appointments].sort((a, b) => (a.appointment_time || "").localeCompare(b.appointment_time || ""));
 
   return (
     <Card>
@@ -25,7 +25,7 @@ export default function TodayAppointments({ appointments }) {
         {sorted.map(apt => (
           <div key={apt.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
             <div className="text-center min-w-[50px]">
-              <p className="text-sm font-semibold">{apt.time}</p>
+              <p className="text-sm font-semibold">{apt.appointment_time}</p>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{apt.patient_name}</p>

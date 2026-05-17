@@ -14,7 +14,6 @@ export default function Register() {
     clinicName: "",
     slug: "",
     ownerEmail: "",
-    password: "",
     phone: "",
     address: "",
   });
@@ -24,21 +23,24 @@ export default function Register() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const res = await fetch("/api/auth/register", {
+      const trialEnd = format(addDays(new Date(), 30), "yyyy-MM-dd");
+      const res = await fetch("/api/clinics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: data.ownerEmail,
-          password: data.password,
-          clinic_name: data.clinicName,
+          name: data.clinicName,
           slug: data.slug,
+          owner_email: data.ownerEmail,
           phone: data.phone,
           address: data.address,
+          subscription_status: "trial",
+          trial_end_date: trialEnd,
+          monthly_fee: 3000,
         }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || "登録に失敗しました");
+        throw new Error(err.message || "登録に失敗しました");
       }
       return res.json();
     },
@@ -83,8 +85,8 @@ export default function Register() {
                 </span>
               </p>
             </div>
-            <Button className="w-full" onClick={() => navigate("/login")}>
-              ログインへ
+            <Button className="w-full" onClick={() => navigate("/login?redirect=/dashboard")}>
+              ダッシュボードへログイン
             </Button>
           </CardContent>
         </Card>
@@ -143,23 +145,12 @@ export default function Register() {
               </div>
 
               <div className="space-y-1">
-                <Label>メールアドレス *</Label>
+                <Label>オーナーのメールアドレス *</Label>
                 <Input
                   type="email"
                   value={form.ownerEmail}
                   onChange={(e) => set("ownerEmail", e.target.value)}
                   placeholder="owner@clinic.com"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label>パスワード *</Label>
-                <Input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => set("password", e.target.value)}
-                  placeholder="8文字以上"
                   required
                 />
               </div>

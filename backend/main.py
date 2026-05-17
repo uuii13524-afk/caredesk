@@ -54,29 +54,33 @@ def get_db():
         user=os.getenv("ORACLE_USER"),
         password=os.getenv("ORACLE_PASSWORD"),
         dsn=os.getenv("ORACLE_DSN"),
-        config_dir=os.getenv("ORACLE_WALLET_DIR"),
-        wallet_location=os.getenv("ORACLE_WALLET_DIR"),
-        wallet_password=os.getenv("ORACLE_WALLET_PASSWORD"),
     )
     try:
         yield conn
     finally:
         conn.close()
 
+
 def _convert_val(val):
+    """Convert Oracle LOB objects and other special types to Python primitives."""
+    if val is None:
+        return val
     if hasattr(val, "read"):
         return val.read()
     return val
 
+
 def row_to_dict(cursor, row) -> dict:
     cols = [col[0].lower() for col in cursor.description]
     return {col: _convert_val(val) for col, val in zip(cols, row)}
+
 
 def rows_to_list(cursor, rows) -> list[dict]:
     if not rows:
         return []
     cols = [col[0].lower() for col in cursor.description]
     return [{col: _convert_val(val) for col, val in zip(cols, row)} for row in rows]
+
 
 def new_id() -> str:
     return str(uuid.uuid4())
@@ -445,8 +449,8 @@ def update_entity(
     payload["updated_date"] = now_str()
 
     set_clause = ", ".join(f"{k} = :{k}" for k in payload.keys())
-    payload["item_id"] = item_id
-    sql = f"UPDATE {table} SET {set_clause} WHERE id = :item_id"
+    payload["_id"] = item_id
+    sql = f"UPDATE {table} SET {set_clause} WHERE id = :_id"
 
     cursor.execute(sql, payload)
     db.commit()
@@ -527,16 +531,11 @@ def get_public_appointments(slug: str, db=Depends(get_db)):
 @app.post("/api/public/appointments", status_code=201)
 def create_public_appointment(payload: dict, db=Depends(get_db)):
     """公開予約フォームから予約を作成（認証不要）"""
-    required = ("clinic_id", "patient_name", "date", "time", "treatment_type")
+    required = ("clinic_id", "patient_name", "appointment_date", "appointment_time", "treatment_type")
     for field in required:
         if field not in payload:
             raise HTTPException(status_code=422, detail=f"{field} は必須です")
 
-    # カラム名変換
-    if "date" in payload:
-        payload["appointment_date"] = payload.pop("date")
-    if "time" in payload:
-        payload["appointment_time"] = payload.pop("time")
     cursor = db.cursor()
     cursor.execute(
         "SELECT id FROM caredesk_clinics WHERE id = :1", [payload["clinic_id"]]
@@ -544,23 +543,6 @@ def create_public_appointment(payload: dict, db=Depends(get_db)):
     if not cursor.fetchone():
         raise HTTPException(status_code=404, detail="院が見つかりません")
 
-    # 患者レコードを作成または取得
-    phone = payload.get("patient_phone", "")
-    cursor.execute(
-        "SELECT id FROM caredesk_patients WHERE clinic_id = :1 AND phone = :2",
-        [payload["clinic_id"], phone]
-    )
-    patient_row = cursor.fetchone()
-    if patient_row:
-        patient_id = patient_row[0]
-    else:
-        patient_id = new_id()
-        cursor.execute(
-            "INSERT INTO caredesk_patients (id, clinic_id, name, name_kana, phone, date_of_birth, intake_notes, created_date) VALUES (:1, :2, :3, :4, :5, :6, :7, :8)",
-            [patient_id, payload["clinic_id"], payload["patient_name"], payload.get("patient_kana", ""), phone, payload.get("patient_dob", ""), payload.get("intake_notes", ""), now_str()]
-        )
-    payload["patient_id"] = patient_id
-    
     payload["id"] = new_id()
     payload.setdefault("status", "confirmed")
     payload["created_date"] = now_str()
@@ -625,17 +607,3 @@ async def stripe_webhook(request: Request, db=Depends(get_db)):
 @app.get("/api/health")
 def health():
     return {"status": "ok", "service": "CareDesk API"}
-
-# Static assets
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os as _os
-
-app.mount("/assets", StaticFiles(directory=_os.path.join(_os.path.dirname(__file__), "../dist/assets")), name="assets")
-
-@app.get("/{full_path:path}")
-async def serve_spa(full_path: str):
-    index = _os.path.join(_os.path.dirname(__file__), "../dist/index.html")
-    if _os.path.exists(index):
-        return FileResponse(index)
-    raise HTTPException(status_code=404)

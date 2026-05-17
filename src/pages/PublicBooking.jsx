@@ -8,7 +8,7 @@ import { CheckCircle, Activity, AlertCircle } from "lucide-react";
 import { format, addDays, startOfToday } from "date-fns";
 
 const TIMES = ["09:00","09:30","10:00","10:30","11:00","11:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30"];
-// TREATMENTSはclinicデータから取得
+const TREATMENTS = ["初診", "再診", "マッサージ", "鍼灸", "骨盤矯正"];
 const DAYS_AHEAD = Array.from({ length: 14 }, (_, i) => addDays(startOfToday(), i + 1));
 
 export default function PublicBooking() {
@@ -23,13 +23,10 @@ export default function PublicBooking() {
 
   const [form, setForm] = useState({
     treatment_type: "再診",
-    date: "",
-    time: "",
+    appointment_date: "",
+    appointment_time: "",
     patient_name: "",
     patient_phone: "",
-    patient_kana: "",
-    patient_dob: "",
-    intake_notes: "",
     notes: "",
   });
 
@@ -62,7 +59,11 @@ export default function PublicBooking() {
   }, [slug]);
 
   const isTimeBooked = (date, time) =>
-    existingApts.some(a => a.date === date && a.time === time && a.status !== "cancelled");
+    existingApts.some(a =>
+      a.appointment_date === date &&
+      a.appointment_time === time &&
+      a.status !== "cancelled"
+    );
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -74,8 +75,8 @@ export default function PublicBooking() {
           clinic_id: clinic.id,
           patient_name: form.patient_name,
           patient_phone: form.patient_phone,
-          date: form.date,
-          time: form.time,
+          appointment_date: form.appointment_date,
+          appointment_time: form.appointment_time,
           treatment_type: form.treatment_type,
           notes: form.notes,
           status: "confirmed",
@@ -126,23 +127,13 @@ export default function PublicBooking() {
                 <span className="text-muted-foreground">お名前</span>
                 <span className="font-medium">{form.patient_name}</span>
               </div>
-              {form.patient_kana && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">フリガナ</span>
-                  <span className="font-medium">{form.patient_kana}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">電話番号</span>
-                <span className="font-medium">{form.patient_phone}</span>
-              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">日付</span>
-                <span className="font-medium">{form.date}</span>
+                <span className="font-medium">{form.appointment_date}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">時間</span>
-                <span className="font-medium">{form.time}</span>
+                <span className="font-medium">{form.appointment_time}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">施術内容</span>
@@ -190,14 +181,13 @@ export default function PublicBooking() {
           <div className="space-y-5">
             <h2 className="text-lg font-semibold">施術内容を選択</h2>
             <div className="grid grid-cols-1 gap-3">
-              {(clinic?.treatment_menu ? JSON.parse(clinic.treatment_menu).map(m => typeof m === "string" ? {name: m, price: 0} : m) : [{name:"初診",price:0},{name:"再診",price:0}]).map(t => (
+              {TREATMENTS.map(t => (
                 <button
-                  key={t.name}
-                  onClick={() => { set("treatment_type", t.name); setStep(2); }}
+                  key={t}
+                  onClick={() => { set("treatment_type", t); setStep(2); }}
                   className={`w-full text-left p-4 rounded-lg border-2 transition-colors hover:border-primary ${form.treatment_type === t ? "border-primary bg-primary/5" : "border-border"}`}
                 >
-                  <span className="font-medium">{t.name}</span>
-                  {t.price > 0 && <span className="text-xs text-muted-foreground ml-2">¥{t.price.toLocaleString()}</span>}
+                  <span className="font-medium">{t}</span>
                 </button>
               ))}
             </div>
@@ -214,11 +204,11 @@ export default function PublicBooking() {
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {DAYS_AHEAD.map(day => {
                   const dateStr = format(day, "yyyy-MM-dd");
-                  const isSelected = form.date === dateStr;
+                  const isSelected = form.appointment_date === dateStr;
                   return (
                     <button
                       key={dateStr}
-                      onClick={() => { set("date", dateStr); set("time", ""); }}
+                      onClick={() => { set("appointment_date", dateStr); set("appointment_time", ""); }}
                       className={`p-2 rounded-lg border text-center text-xs transition-colors ${isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"}`}
                     >
                       <p className="font-medium">{format(day, "EEE")}</p>
@@ -230,18 +220,18 @@ export default function PublicBooking() {
               </div>
             </div>
 
-            {form.date && (
+            {form.appointment_date && (
               <div>
                 <Label className="mb-2 block">時間を選択</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {TIMES.map(t => {
-                    const booked = isTimeBooked(form.date, t);
-                    const isSelected = form.time === t;
+                    const booked = isTimeBooked(form.appointment_date, t);
+                    const isSelected = form.appointment_time === t;
                     return (
                       <button
                         key={t}
                         disabled={booked}
-                        onClick={() => set("time", t)}
+                        onClick={() => set("appointment_time", t)}
                         className={`p-2 rounded-lg border text-sm font-medium transition-colors ${booked ? "opacity-40 cursor-not-allowed bg-muted" : isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"}`}
                       >
                         {booked ? <s>{t}</s> : t}
@@ -257,7 +247,7 @@ export default function PublicBooking() {
               <Button
                 onClick={() => setStep(3)}
                 className="flex-1"
-                disabled={!form.date || !form.time}
+                disabled={!form.appointment_date || !form.appointment_time}
               >
                 次へ
               </Button>
@@ -277,11 +267,11 @@ export default function PublicBooking() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">日付</span>
-                <span className="font-medium">{form.date}</span>
+                <span className="font-medium">{form.appointment_date}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">時間</span>
-                <span className="font-medium">{form.time}</span>
+                <span className="font-medium">{form.appointment_time}</span>
               </div>
             </div>
 
@@ -307,28 +297,11 @@ export default function PublicBooking() {
             </div>
 
             <div className="space-y-1">
-              <Label>フリガナ</Label>
+              <Label>備考（任意）</Label>
               <Input
-                value={form.patient_kana}
-                onChange={e => set("patient_kana", e.target.value)}
-                placeholder="ヤマダ タロウ"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>生年月日</Label>
-              <Input
-                type="date"
-                value={form.patient_dob}
-                onChange={e => set("patient_dob", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>問診票（任意）</Label>
-              <textarea
-                value={form.intake_notes}
-                onChange={e => set("intake_notes", e.target.value)}
-                placeholder="症状・お悩みなどがあればご記入ください..."
-                className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                value={form.notes}
+                onChange={e => set("notes", e.target.value)}
+                placeholder="ご要望など..."
               />
             </div>
 

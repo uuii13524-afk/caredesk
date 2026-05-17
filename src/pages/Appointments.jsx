@@ -8,17 +8,7 @@ import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addDays, subDays, startOfWeek, addWeeks, subWeeks, isSameDay } from "date-fns";
 import AppointmentForm from "@/components/appointments/AppointmentForm";
 
-const STATUS_COLORS = {
-  confirmed: "bg-primary/15 text-primary border-primary/30",
-  completed: "bg-accent/15 text-accent border-accent/30",
-  cancelled: "bg-destructive/10 text-destructive border-destructive/20",
-  no_show: "bg-muted text-muted-foreground border-border",
-};
-
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 8);
-
 const getToken = () => localStorage.getItem("jwt_token");
-
 async function apiFetch(path, options = {}) {
   const res = await fetch(path, {
     ...options,
@@ -27,6 +17,15 @@ async function apiFetch(path, options = {}) {
   if (!res.ok) throw new Error("APIエラー");
   return res.json();
 }
+
+const STATUS_COLORS = {
+  confirmed: "bg-primary/15 text-primary border-primary/30",
+  completed: "bg-accent/15 text-accent border-accent/30",
+  cancelled: "bg-destructive/10 text-destructive border-destructive/20",
+  no_show: "bg-muted text-muted-foreground border-border",
+};
+
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8-20
 
 export default function Appointments() {
   const [viewMode, setViewMode] = useState("week");
@@ -39,16 +38,15 @@ export default function Appointments() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const { data: appointments = [] } = useQuery({
-    queryKey: ["appointments"],
-    queryFn: () => apiFetch("/api/appointments?sort=-appointment_date&limit=500"),
-  });
-
   const { data: clinics = [] } = useQuery({
     queryKey: ["clinics"],
     queryFn: () => apiFetch("/api/clinics"),
   });
-  const clinic = clinics[0];
+
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["appointments"],
+    queryFn: () => apiFetch("/api/appointments?sort=-appointment_date&limit=500"),
+  });
 
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
@@ -59,6 +57,8 @@ export default function Appointments() {
     queryKey: ["staff"],
     queryFn: () => apiFetch("/api/staff"),
   });
+
+  const clinic = clinics[0] || null;
 
   const createMutation = useMutation({
     mutationFn: (data) => apiFetch("/api/appointments", { method: "POST", body: JSON.stringify(data) }),
@@ -87,7 +87,10 @@ export default function Appointments() {
     : [];
 
   const openNew = (date, time) => {
-    setSelectedSlot({ appointment_date: format(date || currentDate, "yyyy-MM-dd"), appointment_time: time || "09:00" });
+    setSelectedSlot({
+      appointment_date: format(date || currentDate, "yyyy-MM-dd"),
+      appointment_time: time || "09:00",
+    });
     setEditing(null);
     setShowForm(true);
   };
@@ -113,6 +116,7 @@ export default function Appointments() {
         </div>
       </div>
 
+      {/* Nav */}
       <div className="flex items-center gap-3">
         <Button variant="outline" size="icon" onClick={() =>
           viewMode === "week" ? setCurrentDate(subWeeks(currentDate, 1)) : setCurrentDate(subDays(currentDate, 1))
@@ -132,6 +136,7 @@ export default function Appointments() {
         </Button>
       </div>
 
+      {/* Week View */}
       {viewMode === "week" && (
         <div className="overflow-x-auto rounded-lg border bg-card">
           <div className="min-w-[700px]">
@@ -176,6 +181,7 @@ export default function Appointments() {
         </div>
       )}
 
+      {/* Day View */}
       {viewMode === "day" && (
         <div className="space-y-2 rounded-lg border bg-card p-4">
           {HOURS.map(hour => {
@@ -209,6 +215,7 @@ export default function Appointments() {
         </div>
       )}
 
+      {/* List View */}
       {viewMode === "list" && (
         <div className="space-y-2">
           {appointments.slice(0, 50).map(a => (
@@ -240,11 +247,11 @@ export default function Appointments() {
             initial={editing || selectedSlot}
             patients={patients}
             staff={staff}
+            clinic={clinic}
             onSubmit={handleSubmit}
             loading={createMutation.isPending || updateMutation.isPending}
             onCancel={() => { setShowForm(false); setEditing(null); setSelectedSlot(null); }}
             isEditing={!!editing}
-            clinic={clinic}
             onStatusChange={(id, status) => updateMutation.mutate({ id, data: { status } })}
           />
         </DialogContent>
