@@ -54,6 +54,9 @@ def get_db():
         user=os.getenv("ORACLE_USER"),
         password=os.getenv("ORACLE_PASSWORD"),
         dsn=os.getenv("ORACLE_DSN"),
+        config_dir=os.getenv("ORACLE_WALLET_DIR"),
+        wallet_location=os.getenv("ORACLE_WALLET_DIR"),
+        wallet_password=os.getenv("ORACLE_WALLET_PASSWORD"),
     )
     try:
         yield conn
@@ -607,3 +610,17 @@ async def stripe_webhook(request: Request, db=Depends(get_db)):
 @app.get("/api/health")
 def health():
     return {"status": "ok", "service": "CareDesk API"}
+
+# Static assets
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os as _os
+
+app.mount("/assets", StaticFiles(directory=_os.path.join(_os.path.dirname(__file__), "../dist/assets")), name="assets")
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    index = _os.path.join(_os.path.dirname(__file__), "../dist/index.html")
+    if _os.path.exists(index):
+        return FileResponse(index)
+    raise HTTPException(status_code=404)
