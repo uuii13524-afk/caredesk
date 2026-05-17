@@ -3,13 +3,34 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Activity, AlertCircle } from "lucide-react";
 import { format, addDays, startOfToday } from "date-fns";
 
 const TIMES = ["09:00","09:30","10:00","10:30","11:00","11:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30"];
-const TREATMENTS = ["初診", "再診", "マッサージ", "鍼灸", "骨盤矯正"];
+const DEFAULT_TREATMENTS = [
+  { name: "初診", price: 0 },
+  { name: "再診", price: 0 },
+  { name: "マッサージ", price: 0 },
+  { name: "鍼灸", price: 0 },
+  { name: "骨盤矯正", price: 0 },
+];
 const DAYS_AHEAD = Array.from({ length: 14 }, (_, i) => addDays(startOfToday(), i + 1));
+
+function parseTreatmentMenu(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    if (typeof parsed[0] === "string") {
+      return parsed.map(name => ({ name, price: 0 }));
+    }
+    return parsed.map(item => ({ name: item.name, price: item.price || 0 }));
+  } catch {
+    return null;
+  }
+}
 
 export default function PublicBooking() {
   const { slug } = useParams();
@@ -22,11 +43,14 @@ export default function PublicBooking() {
   const [submitted, setSubmitted] = useState(false);
 
   const [form, setForm] = useState({
-    treatment_type: "再診",
+    treatment_type: "",
     appointment_date: "",
     appointment_time: "",
     patient_name: "",
+    patient_kana: "",
     patient_phone: "",
+    patient_dob: "",
+    intake_notes: "",
     notes: "",
   });
 
@@ -58,6 +82,8 @@ export default function PublicBooking() {
     load();
   }, [slug]);
 
+  const treatmentMenu = parseTreatmentMenu(clinic?.treatment_menu) || DEFAULT_TREATMENTS;
+
   const isTimeBooked = (date, time) =>
     existingApts.some(a =>
       a.appointment_date === date &&
@@ -74,10 +100,13 @@ export default function PublicBooking() {
         body: JSON.stringify({
           clinic_id: clinic.id,
           patient_name: form.patient_name,
+          patient_kana: form.patient_kana,
           patient_phone: form.patient_phone,
+          patient_dob: form.patient_dob || null,
           appointment_date: form.appointment_date,
           appointment_time: form.appointment_time,
           treatment_type: form.treatment_type,
+          intake_notes: form.intake_notes,
           notes: form.notes,
           status: "confirmed",
         }),
@@ -126,6 +155,16 @@ export default function PublicBooking() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">お名前</span>
                 <span className="font-medium">{form.patient_name}</span>
+              </div>
+              {form.patient_kana && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">フリガナ</span>
+                  <span className="font-medium">{form.patient_kana}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">電話番号</span>
+                <span className="font-medium">{form.patient_phone}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">日付</span>
@@ -181,13 +220,16 @@ export default function PublicBooking() {
           <div className="space-y-5">
             <h2 className="text-lg font-semibold">施術内容を選択</h2>
             <div className="grid grid-cols-1 gap-3">
-              {TREATMENTS.map(t => (
+              {treatmentMenu.map(t => (
                 <button
-                  key={t}
-                  onClick={() => { set("treatment_type", t); setStep(2); }}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors hover:border-primary ${form.treatment_type === t ? "border-primary bg-primary/5" : "border-border"}`}
+                  key={t.name}
+                  onClick={() => { set("treatment_type", t.name); setStep(2); }}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors hover:border-primary ${form.treatment_type === t.name ? "border-primary bg-primary/5" : "border-border"}`}
                 >
-                  <span className="font-medium">{t}</span>
+                  <span className="font-medium">{t.name}</span>
+                  {t.price > 0 && (
+                    <span className="ml-2 text-sm text-muted-foreground">¥{t.price.toLocaleString()}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -286,6 +328,15 @@ export default function PublicBooking() {
             </div>
 
             <div className="space-y-1">
+              <Label>フリガナ</Label>
+              <Input
+                value={form.patient_kana}
+                onChange={e => set("patient_kana", e.target.value)}
+                placeholder="ヤマダ タロウ"
+              />
+            </div>
+
+            <div className="space-y-1">
               <Label>電話番号 *</Label>
               <Input
                 value={form.patient_phone}
@@ -293,6 +344,25 @@ export default function PublicBooking() {
                 placeholder="090-0000-0000"
                 type="tel"
                 required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label>生年月日</Label>
+              <Input
+                value={form.patient_dob}
+                onChange={e => set("patient_dob", e.target.value)}
+                type="date"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label>問診票</Label>
+              <Textarea
+                value={form.intake_notes}
+                onChange={e => set("intake_notes", e.target.value)}
+                placeholder="症状・お悩みなどがあればご記入ください..."
+                rows={3}
               />
             </div>
 
