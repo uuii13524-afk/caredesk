@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,15 @@ const TIMES = Array.from({ length: 26 }, (_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`;
 });
 
-export default function AppointmentForm({ initial, patients, staff, onSubmit, loading, onCancel, isEditing, onStatusChange }) {
+const DEFAULT_MENUS = [
+  { name: "初診", price: 0 },
+  { name: "再診", price: 0 },
+  { name: "マッサージ", price: 0 },
+  { name: "鍼灸", price: 0 },
+  { name: "骨盤矯正", price: 0 },
+];
+
+export default function AppointmentForm({ initial, patients, staff, clinic, onSubmit, loading, onCancel, isEditing, onStatusChange }) {
   const [form, setForm] = useState({
     patient_id: initial?.patient_id || "",
     patient_name: initial?.patient_name || "",
@@ -26,6 +34,28 @@ export default function AppointmentForm({ initial, patients, staff, onSubmit, lo
     price: initial?.price || "",
   });
   const [selectedPatient, setSelectedPatient] = useState(null);
+
+  const menus = (() => {
+    try {
+      if (!clinic?.treatment_menu) return DEFAULT_MENUS;
+      const parsed = JSON.parse(clinic.treatment_menu);
+      if (parsed.length > 0 && typeof parsed[0] === "string") {
+        return parsed.map(name => ({ name, price: 0 }));
+      }
+      return parsed;
+    } catch {
+      return DEFAULT_MENUS;
+    }
+  })();
+
+  useEffect(() => {
+    if (initial?.treatment_type && (!initial?.price || initial?.price === 0 || initial?.price === "")) {
+      const menu = menus.find(m => m.name === initial.treatment_type);
+      if (menu && menu.price > 0) {
+        setForm(f => ({ ...f, price: menu.price }));
+      }
+    }
+  }, [clinic]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -46,6 +76,14 @@ export default function AppointmentForm({ initial, patients, staff, onSubmit, lo
     const s = staff.find(s => s.id === id);
     if (s) set("staff_id", id), set("staff_name", s.name);
     else set("staff_id", id);
+  };
+
+  const handleTreatmentChange = (name) => {
+    set("treatment_type", name);
+    const menu = menus.find(m => m.name === name);
+    if (menu && menu.price > 0) {
+      set("price", menu.price);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -77,7 +115,6 @@ export default function AppointmentForm({ initial, patients, staff, onSubmit, lo
         )}
       </div>
 
-      {/* 患者情報サマリー */}
       {selectedPatient && (
         <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
           {selectedPatient.name_kana && (
@@ -126,14 +163,14 @@ export default function AppointmentForm({ initial, patients, staff, onSubmit, lo
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label>施術種別</Label>
-          <Select value={form.treatment_type} onValueChange={v => set("treatment_type", v)}>
+          <Select value={form.treatment_type} onValueChange={handleTreatmentChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="初診">初診</SelectItem>
-              <SelectItem value="再診">再診</SelectItem>
-              <SelectItem value="マッサージ">マッサージ</SelectItem>
-              <SelectItem value="鍼灸">鍼灸</SelectItem>
-              <SelectItem value="骨盤矯正">骨盤矯正</SelectItem>
+              {menus.map(m => (
+                <SelectItem key={m.name} value={m.name}>
+                  {m.name}{m.price > 0 ? ` (¥${m.price.toLocaleString()})` : ""}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

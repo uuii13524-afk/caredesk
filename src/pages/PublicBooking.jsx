@@ -190,13 +190,14 @@ export default function PublicBooking() {
           <div className="space-y-5">
             <h2 className="text-lg font-semibold">施術内容を選択</h2>
             <div className="grid grid-cols-1 gap-3">
-              {(clinic?.treatment_menu ? JSON.parse(clinic.treatment_menu) : ["初診", "再診", "マッサージ", "鍼灸", "骨盤矯正"]).map(t => (
+              {(clinic?.treatment_menu ? JSON.parse(clinic.treatment_menu).map(m => typeof m === "string" ? {name: m, price: 0} : m) : [{name:"初診",price:0},{name:"再診",price:0}]).map(t => (
                 <button
-                  key={t}
-                  onClick={() => { set("treatment_type", t); setStep(2); }}
+                  key={t.name}
+                  onClick={() => { set("treatment_type", t.name); setStep(2); }}
                   className={`w-full text-left p-4 rounded-lg border-2 transition-colors hover:border-primary ${form.treatment_type === t ? "border-primary bg-primary/5" : "border-border"}`}
                 >
-                  <span className="font-medium">{t}</span>
+                  <span className="font-medium">{t.name}</span>
+                  {t.price > 0 && <span className="text-xs text-muted-foreground ml-2">¥{t.price.toLocaleString()}</span>}
                 </button>
               ))}
             </div>

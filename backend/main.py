@@ -515,9 +515,9 @@ def get_public_appointments(slug: str, db=Depends(get_db)):
     clinic_id = row[0]
 
     cursor.execute(
-        "SELECT date, time, status FROM caredesk_appointments "
+        "SELECT appointment_date, appointment_time, status FROM caredesk_appointments "
         "WHERE clinic_id = :1 AND status != 'cancelled' "
-        "ORDER BY date, time",
+        "ORDER BY appointment_date, appointment_time",
         [clinic_id],
     )
     rows = cursor.fetchall()
@@ -544,6 +544,23 @@ def create_public_appointment(payload: dict, db=Depends(get_db)):
     if not cursor.fetchone():
         raise HTTPException(status_code=404, detail="院が見つかりません")
 
+    # 患者レコードを作成または取得
+    phone = payload.get("patient_phone", "")
+    cursor.execute(
+        "SELECT id FROM caredesk_patients WHERE clinic_id = :1 AND phone = :2",
+        [payload["clinic_id"], phone]
+    )
+    patient_row = cursor.fetchone()
+    if patient_row:
+        patient_id = patient_row[0]
+    else:
+        patient_id = new_id()
+        cursor.execute(
+            "INSERT INTO caredesk_patients (id, clinic_id, name, name_kana, phone, date_of_birth, intake_notes, created_date) VALUES (:1, :2, :3, :4, :5, :6, :7, :8)",
+            [patient_id, payload["clinic_id"], payload["patient_name"], payload.get("patient_kana", ""), phone, payload.get("patient_dob", ""), payload.get("intake_notes", ""), now_str()]
+        )
+    payload["patient_id"] = patient_id
+    
     payload["id"] = new_id()
     payload.setdefault("status", "confirmed")
     payload["created_date"] = now_str()

@@ -44,6 +44,12 @@ export default function Appointments() {
     queryFn: () => apiFetch("/api/appointments?sort=-appointment_date&limit=500"),
   });
 
+  const { data: clinics = [] } = useQuery({
+    queryKey: ["clinics"],
+    queryFn: () => apiFetch("/api/clinics"),
+  });
+  const clinic = clinics[0];
+
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
     queryFn: () => apiFetch("/api/patients"),
@@ -238,6 +244,7 @@ export default function Appointments() {
             loading={createMutation.isPending || updateMutation.isPending}
             onCancel={() => { setShowForm(false); setEditing(null); setSelectedSlot(null); }}
             isEditing={!!editing}
+            clinic={clinic}
             onStatusChange={(id, status) => updateMutation.mutate({ id, data: { status } })}
           />
         </DialogContent>

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Building2, Plus, X } from "lucide-react";
 
@@ -19,6 +18,14 @@ async function apiFetch(path, options = {}) {
   return res.json();
 }
 
+const DEFAULT_MENUS = [
+  { name: "初診", price: 0 },
+  { name: "再診", price: 0 },
+  { name: "マッサージ", price: 0 },
+  { name: "鍼灸", price: 0 },
+  { name: "骨盤矯正", price: 0 },
+];
+
 export default function Settings() {
   const qc = useQueryClient();
   const { data: clinics = [] } = useQuery({
@@ -27,8 +34,9 @@ export default function Settings() {
   });
   const clinic = clinics[0];
   const [form, setForm] = useState({ name: "", slug: "", address: "", phone: "", email: "" });
-  const [menus, setMenus] = useState([]);
-  const [newMenu, setNewMenu] = useState("");
+  const [menus, setMenus] = useState(DEFAULT_MENUS);
+  const [newName, setNewName] = useState("");
+  const [newPrice, setNewPrice] = useState("");
 
   useEffect(() => {
     if (clinic) {
@@ -40,9 +48,15 @@ export default function Settings() {
         email: clinic.email || "",
       });
       try {
-        setMenus(clinic.treatment_menu ? JSON.parse(clinic.treatment_menu) : ["初診", "再診", "マッサージ", "鍼灸", "骨盤矯正"]);
+        const parsed = clinic.treatment_menu ? JSON.parse(clinic.treatment_menu) : DEFAULT_MENUS;
+        // 旧形式（文字列配列）の場合はオブジェクトに変換
+        if (parsed.length > 0 && typeof parsed[0] === "string") {
+          setMenus(parsed.map(name => ({ name, price: 0 })));
+        } else {
+          setMenus(parsed);
+        }
       } catch {
-        setMenus(["初診", "再診", "マッサージ", "鍼灸", "骨盤矯正"]);
+        setMenus(DEFAULT_MENUS);
       }
     }
   }, [clinic]);
@@ -59,13 +73,18 @@ export default function Settings() {
   };
 
   const addMenu = () => {
-    if (newMenu.trim() && !menus.includes(newMenu.trim())) {
-      setMenus([...menus, newMenu.trim()]);
-      setNewMenu("");
+    if (newName.trim() && !menus.find(m => m.name === newName.trim())) {
+      setMenus([...menus, { name: newName.trim(), price: parseInt(newPrice) || 0 }]);
+      setNewName("");
+      setNewPrice("");
     }
   };
 
-  const removeMenu = (item) => setMenus(menus.filter(m => m !== item));
+  const removeMenu = (name) => setMenus(menus.filter(m => m.name !== name));
+
+  const updatePrice = (name, price) => {
+    setMenus(menus.map(m => m.name === name ? { ...m, price: parseInt(price) || 0 } : m));
+  };
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -102,25 +121,44 @@ export default function Settings() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>施術メニュー</CardTitle></CardHeader>
+          <CardHeader><CardTitle>施術メニュー・料金</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {menus.map(m => (
-                <Badge key={m} variant="secondary" className="flex items-center gap-1 px-3 py-1">
-                  {m}
-                  <button type="button" onClick={() => removeMenu(m)} className="ml-1 hover:text-destructive">
-                    <X className="w-3 h-3" />
+                <div key={m.name} className="flex items-center gap-2">
+                  <span className="flex-1 text-sm font-medium">{m.name}</span>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={m.price}
+                      onChange={e => updatePrice(m.name, e.target.value)}
+                      className="w-28 text-right"
+                      placeholder="0"
+                    />
+                    <span className="text-sm text-muted-foreground">円</span>
+                  </div>
+                  <button type="button" onClick={() => removeMenu(m.name)} className="hover:text-destructive">
+                    <X className="w-4 h-4" />
                   </button>
-                </Badge>
+                </div>
               ))}
             </div>
             <div className="flex gap-2">
               <Input
-                value={newMenu}
-                onChange={e => setNewMenu(e.target.value)}
-                placeholder="例：整体、温熱療法..."
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                placeholder="施術名"
+                className="flex-1"
                 onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addMenu())}
               />
+              <Input
+                type="number"
+                value={newPrice}
+                onChange={e => setNewPrice(e.target.value)}
+                placeholder="料金"
+                className="w-28"
+              />
+              <span className="text-sm text-muted-foreground self-center">円</span>
               <Button type="button" variant="outline" onClick={addMenu}>
                 <Plus className="w-4 h-4" />
               </Button>
